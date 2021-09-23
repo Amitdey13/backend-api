@@ -8,4 +8,6 @@ app.get('/login', middleware.login)
 
 app.get('/signup', middleware.signup)
 
-app.listen(4000)
+const port = process.env.PORT || 5000;
+
+app.listen(port)
