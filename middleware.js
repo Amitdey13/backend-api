@@ -1,7 +1,7 @@
 const AWS = require("aws-sdk");
 
 // const cred = require("C:/Users/DD/OneDrive/Desktop/credentials.js");
-const cred = require("~/credentials.js");
+const cred = require("/home/ubumtu/credentials.js");
 
 AWS.config.update({
 region: "ap-south-1",
@@ -21,7 +21,7 @@ const login = (req,res) => {
   let params = {
     TableName: table,
     Key: {
-      email_id: "amit@gmail.com"
+      email_id: req.body.email_id
     },
   };
   console.log("Reading item.....");
