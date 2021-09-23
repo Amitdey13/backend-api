@@ -3,8 +3,6 @@ const AWS = require("aws-sdk");
 AWS.config.update({
 region: "ap-south-1",
 endpoint: "dynamodb.ap-south-1.amazonaws.com",
-accessKeyId: "AKIA5DL73S7Q7TYEL2GX",
-secretAccessKey: "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",
 });
 
 let docClient = new AWS.DynamoDB.DocumentClient();
