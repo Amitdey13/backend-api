@@ -1,8 +1,13 @@
 const AWS = require("aws-sdk");
 
+// const cred = require("C:/Users/DD/OneDrive/Desktop/credentials.js");
+const cred = require("~/credentials.js");
+
 AWS.config.update({
 region: "ap-south-1",
-endpoint: "dynamodb.ap-south-1.amazonaws.com",
+  endpoint: "dynamodb.ap-south-1.amazonaws.com",
+  accessKeyId:cred.secretId,
+secretAccessKey:cred.secretAccessKey
 });
 
 let docClient = new AWS.DynamoDB.DocumentClient();
@@ -16,16 +21,16 @@ const login = (req,res) => {
   let params = {
     TableName: table,
     Key: {
-      email_id: req.body.email_id
+      email_id: "amit@gmail.com"
     },
   };
   console.log("Reading item.....");
   
   docClient.get(params, function (err, data) {
     if (err) {
-      res.status(err.status).send(err.body)
+      res.send(err)
     } else {
-      res.status(data.status).send(data.body)
+      res.send(data)
     }
   });
 
@@ -35,21 +40,37 @@ const signup = (req, res) => {
 
   let table = "users";
 
-  let params = {
+  let check = {
     TableName: table,
-    Item: {
+    Key: {
       email_id: req.body.email_id,
-      password: req.body.password,
-      username: req.body.username,
     },
   };
 
-  console.log("Adding item.....");
-  docClient.put(params, function (err, data) {
+  docClient.get(check, function (err, data) {
     if (err) {
-      res.status(err.status).send(err.body);
+      res.send(err);
     } else {
-      res.status(data.status).send(data.body);
+      if (data = {}) {
+        let params = {
+          TableName: table,
+          Item: {
+            email_id: req.body.email_id,
+            password: req.body.password,
+            username: req.body.username,
+          },
+        };
+        docClient.put(params, function (err, data) {
+          if (err) {
+            res.send(err);
+          } else {
+            res.send(data);
+          }
+        });
+      }
+      else {
+        res.send("exist")
+      }
     }
   });
   
