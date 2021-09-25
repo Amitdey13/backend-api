@@ -1,7 +1,7 @@
 const AWS = require("aws-sdk");
 
 // const cred = require("C:/Users/DD/OneDrive/Desktop/credentials.js");
-const cred = require("/home/ubumtu/credentials.js");
+const cred = require("/home/ubuntu/credentials.js");
 
 AWS.config.update({
 region: "ap-south-1",
@@ -17,6 +17,7 @@ let docClient = new AWS.DynamoDB.DocumentClient();
 const login = (req,res) => {
   // params
   let table = "users";
+  let password = req.body.password;
 
   let params = {
     TableName: table,
@@ -30,7 +31,12 @@ const login = (req,res) => {
     if (err) {
       res.send(err)
     } else {
-      res.send(data)
+      if(data.Item && data.Item.password===password)
+        res.send(data)
+      else if (data.Item)
+        res.send({ message: "wrong password!" })
+      else
+        res.send({ message: "No account is available with this email!" });
     }
   });
 
@@ -51,7 +57,10 @@ const signup = (req, res) => {
     if (err) {
       res.send(err);
     } else {
-      if (data = {}) {
+      if (data.Item) {
+        res.send({ message: "An account is already created with this email" });
+      }
+      else {
         let params = {
           TableName: table,
           Item: {
@@ -67,9 +76,6 @@ const signup = (req, res) => {
             res.send(data);
           }
         });
-      }
-      else {
-        res.send("exist")
       }
     }
   });
