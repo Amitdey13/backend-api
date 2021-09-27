@@ -9,11 +9,13 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cors())
 
-app.get('/', (req,res)=>console.log(res.send("Welcome!")))
+app.get('/', (req,res)=>res.send("Welcome!"))
 
 app.post('/login', middleware.login)
 
 app.post('/signup', middleware.signup)
+
+app.post('/upload', middleware.editGravatar)
 
 const port = process.env.PORT || 5000;
 
