@@ -84,25 +84,6 @@ const signup = (req, res) => {
 };
 
 // image upload fuction
-const imageUpload = (path) => {
-  const data = {
-    key: path,
-    body: "Image buffer",
-    ContentEncoding: "base64",
-    ContentType: "image/jpeg",
-    ACL: "public-read",
-  };
-  return new Promise((res, rej) => {
-    s3Bucket.putObject(data, err=>{
-      if (err) {
-        rej(err)
-      }
-      else {
-        res(s3Url + path);
-      }
-    })
-  })
-};
 
 const uploadFile = (buffer, name, type) => {
   const params = {
@@ -128,11 +109,10 @@ const editGravatar = (request, response) => {
       const fileName = `${Date.now().toString()}`;
       const data = await uploadFile(buffer, fileName, type);
       console.log(data.Location)
-
       var params = {
-        TableName: users,
+        TableName: "users",
         Key: {
-          email_id: request.body.email_id
+          email_id: fields.email_id[0]
         },
         UpdateExpression: "set profile = :r",
         ExpressionAttributeValues: {
@@ -160,8 +140,51 @@ const editGravatar = (request, response) => {
   });
 };
 
+const peoples = (req, res) => {
+  let params = {
+    TableName: "users"
+  };
+  docClient.scan(params, (err, data) => {
+    if (err) {
+      console.error(
+        "Unable to scan the table. Error JSON:",
+        JSON.stringify(err, null, 2)
+      );
+    } else {
+      // print all the movies
+      console.log("Scan succeeded.");
+      res.send(data.Items);
+    }
+  });
+}
+
+const friends = (req, res) => {
+  console.log(req.query.email_id)
+  let params = {
+    TableName: "friends",
+    KeyConditionExpression: "#yr = :yyyy",
+    ExpressionAttributeNames: {
+      "#yr": "email_id",
+    }, 
+    ExpressionAttributeValues: {
+      ":yyyy": req.query.email_id,
+    },
+  };
+
+  docClient.query(params, function (err, data) {
+    if (err) {
+      console.error("Unable to query. Error:", JSON.stringify(err, null, 2));
+    } else {
+      console.log("Query succeeded.");
+      res.send(data.Items)
+    }
+  });
+}
+
 module.exports = {
   login,
   signup,
-  editGravatar
-};
+  editGravatar,
+  peoples,
+  friends
+}
