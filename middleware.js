@@ -2,6 +2,7 @@ const AWS = require("aws-sdk");
 const FileType = require("file-type")
 const fs = require("fs");
 const multiparty = require("multiparty")
+const {v4:uuidv4} = require('uuid')
 
 // const cred = require("C:/Users/DD/OneDrive/Desktop/credentials.js");
 const cred = require("/home/ubuntu/credentials.js");
@@ -156,22 +157,23 @@ const peoples = (req, res) => {
       res.send(data.Items);
     }
   });
+
 }
 
 const friends = (req, res) => {
   console.log(req.query.email_id)
   let params = {
     TableName: "friends",
-    KeyConditionExpression: "#yr = :yyyy",
+    FilterExpression: "#yr = :yyyy",
     ExpressionAttributeNames: {
-      "#yr": "email_id",
-    }, 
+      "#yr": "my_email_id",
+    },
     ExpressionAttributeValues: {
       ":yyyy": req.query.email_id,
     },
   };
 
-  docClient.query(params, function (err, data) {
+  docClient.scan(params, function (err, data) {
     if (err) {
       console.error("Unable to query. Error:", JSON.stringify(err, null, 2));
     } else {
@@ -181,10 +183,32 @@ const friends = (req, res) => {
   });
 }
 
+const addfriend = (req,res) => {
+  let table = "friends"
+  let params = {
+    TableName: table,
+    Item: {
+      id: uuidv4(),
+      my_email_id:req.body.my_email_id,
+      friend_email_id:req.body.friend_email_id,
+      friend_username:req.body.friend_username,
+      friend_profile:req.body.friend_profile
+    },
+  };
+  docClient.put(params, function (err, data) {
+    if (err) {
+      res.send(err);
+    } else {
+      res.send(data);
+    }
+  });
+}
+
 module.exports = {
   login,
   signup,
   editGravatar,
   peoples,
-  friends
+  friends,
+  addfriend
 }

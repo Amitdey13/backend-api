@@ -16,7 +16,8 @@
     "express": "^4.17.1",
     "file-type": "^16.5.3",
     "multiparty": "^4.2.2",
-    "path": "^0.12.7"
+    "path": "^0.12.7",
+    "uuid": "^8.3.2"
   },
   "devDependencies": {
     "nodemon": "^2.0.12"
