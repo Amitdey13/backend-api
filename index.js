@@ -19,7 +19,7 @@ app.post('/upload', middleware.editGravatar)
 
 app.get('/peoples', middleware.peoples)
 
-app.get('/friends', middleware.friends)
+app.post('/friends', middleware.friends)
 
 app.post('/addfriend', middleware.addfriend)
 

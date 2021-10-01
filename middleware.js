@@ -7,6 +7,8 @@ const {v4:uuidv4} = require('uuid')
 // const cred = require("C:/Users/DD/OneDrive/Desktop/credentials.js");
 const cred = require("/home/ubuntu/credentials.js");
 
+const table = "User"
+
 AWS.config.update({
   region: "ap-south-1",
   accessKeyId: cred.secretId,
@@ -23,53 +25,64 @@ const s3Bucket = new AWS.S3()
 
 const login = (req, res) => {
   // params
-  let table = "users";
-  let password = req.body.password;
+  let Password = req.body.password;
 
   let params = {
     TableName: table,
-    Key: {
-      email_id: req.body.email_id,
+    FilterExpression: "#yr = :yyyy",
+    ExpressionAttributeNames: {
+      "#yr": "Email",
     },
-  };
+    ExpressionAttributeValues: {
+      ":yyyy": req.body.email_id,
+    },
+  }; 
   console.log("Reading item.....");
 
-  docClient.get(params, function (err, data) {
+  docClient.scan(params, function (err, data) {
     if (err) {
       res.send(err);
     } else {
-      if (data.Item && data.Item.password === password) res.send(data);
+      console.log(data.Items[0])
+      if (data.Items[0] && data.Items[0].Password === Password) res.send(data);
       else if (data.Item) res.send({ message: "wrong password!" });
       else res.send({ message: "No account is available with this email!" });
     }
   });
 };
 
+// signup function
+
 const signup = (req, res) => {
-  let table = "users";
 
   let check = {
     TableName: table,
-    Key: {
-      email_id: req.body.email_id,
+    FilterExpression: "#yr = :yyyy",
+    ExpressionAttributeNames: {
+      "#yr": "Email",
+    },
+    ExpressionAttributeValues: {
+      ":yyyy": req.body.email_id,
     },
   };
 
-  docClient.get(check, function (err, data) {
+  docClient.scan(check, function (err, data) {
     if (err) {
       res.send(err);
     } else {
-      if (data.Item) {
+      if (data.Items[0]) {
         res.send({ message: "An account is already created with this email" });
       } else {
         let params = {
           TableName: table,
           Item: {
-            email_id: req.body.email_id,
-            password: req.body.password,
-            username: req.body.username,
-            profile:
+            UserId: req.body.userId,
+            Email: req.body.email_id,
+            Password: req.body.password,
+            UserName: req.body.username,
+            ProfileImageURL:
               "https://gravater.s3.ap-south-1.amazonaws.com/public_gravatar.jpg",
+            FriendList: []
           },
         };
         docClient.put(params, function (err, data) {
@@ -111,11 +124,11 @@ const editGravatar = (request, response) => {
       const data = await uploadFile(buffer, fileName, type);
       console.log(data.Location)
       var params = {
-        TableName: "users",
+        TableName: table,
         Key: {
-          email_id: fields.email_id[0]
+          UserId: fields.UserId[0]
         },
-        UpdateExpression: "set profile = :r",
+        UpdateExpression: "set ProfileImageURL = :r",
         ExpressionAttributeValues: {
           ":r": data.Location
         },
@@ -143,7 +156,7 @@ const editGravatar = (request, response) => {
 
 const peoples = (req, res) => {
   let params = {
-    TableName: "users"
+    TableName: table
   };
   docClient.scan(params, (err, data) => {
     if (err) {
@@ -160,42 +173,45 @@ const peoples = (req, res) => {
 
 }
 
+// Create DynamoDB service object
+// var ddb = new AWS.DynamoDB({ apiVersion: "2012-08-10" });
+
 const friends = (req, res) => {
-  console.log(req.query.email_id)
-  let params = {
-    TableName: "friends",
-    FilterExpression: "#yr = :yyyy",
-    ExpressionAttributeNames: {
-      "#yr": "my_email_id",
-    },
-    ExpressionAttributeValues: {
-      ":yyyy": req.query.email_id,
+  console.log(req.body.friendList)
+  var params = {
+    RequestItems: {
+      User: {
+        Keys: req.body.friendList,
+        ProjectionExpression: "UserId, UserName, Email, ProfileImageURL",
+      },
     },
   };
 
-  docClient.scan(params, function (err, data) {
+  docClient.batchGet(params, function (err, data) {
     if (err) {
-      console.error("Unable to query. Error:", JSON.stringify(err, null, 2));
+      console.log("Error", err);
     } else {
-      console.log("Query succeeded.");
-      res.send(data.Items)
+      let users = data.Responses.User;
+      console.log(users);
+      res.send(users)
     }
   });
 }
 
 const addfriend = (req,res) => {
-  let table = "friends"
+  console.log(req.body.newFriendList);
   let params = {
     TableName: table,
-    Item: {
-      id: uuidv4(),
-      my_email_id:req.body.my_email_id,
-      friend_email_id:req.body.friend_email_id,
-      friend_username:req.body.friend_username,
-      friend_profile:req.body.friend_profile
+    Key: {
+      "UserId":req.body.userId
     },
+    UpdateExpression: "set FriendList = :r",
+    ExpressionAttributeValues:{
+        ":r":req.body.newFriendList,
+    },
+    ReturnValues:"UPDATED_NEW"
   };
-  docClient.put(params, function (err, data) {
+  docClient.update(params, function (err, data) {
     if (err) {
       res.send(err);
     } else {
