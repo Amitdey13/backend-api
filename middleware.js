@@ -1,13 +1,13 @@
 const AWS = require("aws-sdk");
-const FileType = require("file-type")
+const FileType = require("file-type");
 const fs = require("fs");
-const multiparty = require("multiparty")
-const {v4:uuidv4} = require('uuid')
+const multiparty = require("multiparty");
+const { v4: uuidv4 } = require("uuid");
 
 // const cred = require("C:/Users/DD/OneDrive/Desktop/credentials.js");
 const cred = require("/home/ubuntu/credentials.js");
 
-const table = "User"
+const table = "User";
 
 AWS.config.update({
   region: "ap-south-1",
@@ -19,7 +19,7 @@ let docClient = new AWS.DynamoDB.DocumentClient();
 
 // bucket name
 const bucketName = "gravater";
-const s3Bucket = new AWS.S3()
+const s3Bucket = new AWS.S3();
 
 // login function
 
@@ -36,14 +36,14 @@ const login = (req, res) => {
     ExpressionAttributeValues: {
       ":yyyy": req.body.email_id,
     },
-  }; 
+  };
   console.log("Reading item.....");
 
   docClient.scan(params, function (err, data) {
     if (err) {
       res.send(err);
     } else {
-      console.log(data.Items[0])
+      console.log(data.Items[0]);
       if (data.Items[0] && data.Items[0].Password === Password) res.send(data);
       else if (data.Item) res.send({ message: "wrong password!" });
       else res.send({ message: "No account is available with this email!" });
@@ -54,7 +54,6 @@ const login = (req, res) => {
 // signup function
 
 const signup = (req, res) => {
-
   let check = {
     TableName: table,
     FilterExpression: "#yr = :yyyy",
@@ -82,7 +81,7 @@ const signup = (req, res) => {
             UserName: req.body.username,
             ProfileImageURL:
               "https://gravater.s3.ap-south-1.amazonaws.com/public_gravatar.jpg",
-            FriendList: []
+            FriendList: [],
           },
         };
         docClient.put(params, function (err, data) {
@@ -122,15 +121,15 @@ const editGravatar = (request, response) => {
       const type = await FileType.fromBuffer(buffer);
       const fileName = `${Date.now().toString()}`;
       const data = await uploadFile(buffer, fileName, type);
-      console.log(data.Location)
+      console.log(data.Location);
       var params = {
         TableName: table,
         Key: {
-          UserId: fields.UserId[0]
+          UserId: fields.UserId[0],
         },
         UpdateExpression: "set ProfileImageURL = :r",
         ExpressionAttributeValues: {
-          ":r": data.Location
+          ":r": data.Location,
         },
         ReturnValues: "UPDATED_NEW",
       };
@@ -156,7 +155,7 @@ const editGravatar = (request, response) => {
 
 const peoples = (req, res) => {
   let params = {
-    TableName: table
+    TableName: table,
   };
   docClient.scan(params, (err, data) => {
     if (err) {
@@ -170,14 +169,10 @@ const peoples = (req, res) => {
       res.send(data.Items);
     }
   });
-
-}
-
-// Create DynamoDB service object
-// var ddb = new AWS.DynamoDB({ apiVersion: "2012-08-10" });
+};
 
 const friends = (req, res) => {
-  console.log(req.body.friendList)
+  console.log(req.body.friendList);
   var params = {
     RequestItems: {
       User: {
@@ -193,32 +188,50 @@ const friends = (req, res) => {
     } else {
       let users = data.Responses.User;
       console.log(users);
-      res.send(users)
+      res.send(users);
     }
   });
-}
+};
 
-const addfriend = (req,res) => {
+const addfriend = (req, res) => {
   console.log(req.body.newFriendList);
   let params = {
     TableName: table,
     Key: {
-      "UserId":req.body.userId
+      UserId: req.body.userId,
     },
     UpdateExpression: "set FriendList = :r",
-    ExpressionAttributeValues:{
-        ":r":req.body.newFriendList,
+    ExpressionAttributeValues: {
+      ":r": req.body.newFriendList,
     },
-    ReturnValues:"UPDATED_NEW"
+    ReturnValues: "UPDATED_NEW",
   };
   docClient.update(params, function (err, data) {
     if (err) {
       res.send(err);
     } else {
+      let params2 = {
+        TableName: table,
+        Key: {
+          UserId: req.body.friend_id,
+        },
+        UpdateExpression: "set FriendList = list_append(FriendList, :r)",
+        ExpressionAttributeValues: {
+          ":r": [{ UserId: req.body.userId }],
+        },
+        ReturnValues: "UPDATED_NEW",
+      };
+      docClient.update(params2, function(err, data) {
+    if (err) {
+        console.error("Unable to update item. Error JSON:", JSON.stringify(err, null, 2));
+    } else {
+        console.log("UpdateItem succeeded:", JSON.stringify(data, null, 2));
+    }
+})
       res.send(data);
     }
   });
-}
+};
 
 module.exports = {
   login,
@@ -226,5 +239,5 @@ module.exports = {
   editGravatar,
   peoples,
   friends,
-  addfriend
-}
+  addfriend,
+};
