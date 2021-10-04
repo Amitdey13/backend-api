@@ -233,6 +233,61 @@ const addfriend = (req, res) => {
   });
 };
 
+// image upload fuction
+const bucketName2 = "userphotosalbum"
+
+const uploadPhoto = (buffer, name, type) => {
+  const params = {
+    ACL: "public-read",
+    Body: buffer,
+    Bucket: bucketName2,
+    ContentType: type.mime,
+    Key: `${name}.${type.ext}`,
+  };
+  return s3Bucket.upload(params).promise();
+};
+
+const addphotos = (request,response) => {
+  const form = new multiparty.Form();
+  form.parse(request, async (error, fields, files) => {
+    if (error) {
+      return response.status(500).send(error);
+    }
+    try {
+      const path = files.file[0].path;
+      const buffer = fs.readFileSync(path);
+      const type = await FileType.fromBuffer(buffer);
+      const fileName = `${Date.now().toString()}`;
+      const data = await uploadPhoto(buffer, fileName, type);
+      var params = {
+        TableName: table,
+        Key: {
+          UserId: fields.UserId[0],
+        },
+        UpdateExpression: "set photos = list_append(photos, :r)",
+        ExpressionAttributeValues: {
+          ":r": [data.Location],
+        },
+        ReturnValues: "UPDATED_NEW",
+      };
+      docClient.update(params, function (err, data) {
+        if (err) {
+          console.error(
+            "Unable to update item. Error JSON:",
+            JSON.stringify(err, null, 2)
+          );
+        } else {
+          console.log("UpdateItem succeeded:", JSON.stringify(data, null, 2));
+        }
+      });
+  
+      return response.status(200).send(data);
+    } catch (err) {
+      console.log(err);
+    }
+}) 
+}
+
 module.exports = {
   login,
   signup,
@@ -240,4 +295,5 @@ module.exports = {
   peoples,
   friends,
   addfriend,
+  addphotos
 };
